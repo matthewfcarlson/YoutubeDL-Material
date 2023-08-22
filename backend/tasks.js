@@ -1,5 +1,6 @@
 const db_api = require('./db');
 const notifications_api = require('./notifications');
+const requests_api = require('./requests');
 const youtubedl_api = require('./youtube-dl');
 const archive_api = require('./archive');
 const files_api = require('./files');
@@ -59,6 +60,11 @@ const TASKS = {
         run: rebuildDB,
         title: 'Rebuild database',
         job: null
+    },
+    check_for_requests: {
+        run: checkForRequests,
+        title: 'Check for requests',
+        job: null,
     }
 }
 
@@ -83,7 +89,8 @@ function scheduleJob(task_key, schedule) {
         const hour = schedule['data']['hour']           != null       ? schedule['data']['hour']      : null;
         const minute = schedule['data']['minute']       != null       ? schedule['data']['minute']    : null;
         converted_schedule = new scheduler.RecurrenceRule(null, null, null, dayOfWeek, hour, minute, undefined, schedule['data']['tz'] ? schedule['data']['tz'] : undefined);
-    } else {
+    }
+    else {
         logger.error(`Failed to schedule job '${task_key}' as the type '${schedule['type']}' is invalid.`)
         return null;
     }
@@ -275,6 +282,10 @@ async function autoDeleteFiles(data) {
             await files_api.deleteFile(file_to_remove['uid'], task_obj['options']['blacklist_files'] || (file_to_remove['sub_id'] && file_to_remove['blacklist_subscription_files']));
         }
     }
+}
+
+async function checkForRequests() {
+    await requests_api.checkForRequests();
 }
 
 async function rebuildDB() {
