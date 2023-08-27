@@ -151,7 +151,7 @@ async function sendTelegramNotification({body, title, type, url, thumbnail}) {
     const chat_id = config_api.getConfigItem('ytdl_telegram_chat_id');
     const bot = new TelegramBot(bot_token);
     if (thumbnail) await bot.sendPhoto(chat_id, thumbnail);
-    bot.sendMessage(chat_id, `<b>${title}</b>\n\n${body}\n<a href="${url}">${url}</a>`, {parse_mode: 'HTML'});
+    bot.sendMessage(chat_id, `<b>${title}</b>\n\n${body}\n<a href="${url}">${url}</a>`, {parse_mode: 'HTML', disable_web_page_preview: thumbnail});
 }
 
 async function sendDiscordNotification({body, title, type, url, thumbnail}) {
