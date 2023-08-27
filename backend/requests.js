@@ -36,6 +36,7 @@ async function getTelegramRequests() {
     const bot = new TelegramBot(bot_token);
     // Get the newest updates and then filter them to just the chatID that we care about
     const updates = await bot.getUpdates({"offset": last_message_id + 1, "allowed_updates": ["message"]}).filter(update => update.message.chat.id == chat_id);
+    // Delete the messages that we've processed?
     const new_highest_message_id = updates.reduce((acc, cur) => Math.max(acc, cur.update_id), last_message_id);
     config_api.setConfigItem('ytdl_telegram_last_message_id', new_highest_message_id);
     // Check if there are any messages and see if they are urls
@@ -43,6 +44,10 @@ async function getTelegramRequests() {
     const downloads_promises = urls.map(url => downloader_api.createDownload(url, 'video', {}, null));
     const download_objects = await Promise.allSettled(downloads_promises);
     logger.verbose(JSON.stringify(download_objects));
+    // TODO: only delete the messages that were processed correctly
+    const delete_promises = updates.map(update => bot.deleteMessage(update.message.chat.id, update.message.message_id));
+    const deletes = await Promise.allSettled(delete_promises);
+    logger.verbose(JSON.stringify(deletes));
 }
 
 exports.checkForRequests = async () => {
