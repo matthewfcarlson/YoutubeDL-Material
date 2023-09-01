@@ -25,19 +25,21 @@ RUN groupadd -g $GID $USER && useradd --system -m -g $USER --uid $UID $USER && \
     apt update && \
     apt install -y --no-install-recommends curl ca-certificates tzdata libicu70 apt-transport-https && \
     apt clean && \
-    rm -rf /var/lib/apt/lists/*
-    RUN case ${TARGETPLATFORM} in \
-         "linux/amd64")  NODE_ARCH=amd64   ;; \
-         "linux/arm")    NODE_ARCH=armhf  ;; \
-         "linux/arm/v7")    NODE_ARCH=armhf  ;; \
-         "linux/arm64")  NODE_ARCH=arm64  ;; \
-    esac \ 
-    && curl -L https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/nodejs_16.14.2-deb-1nodesource1_$NODE_ARCH.deb -o ./nodejs.deb && \
-    apt update && \
-    apt install -y ./nodejs.deb && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/* &&\
-    rm nodejs.deb;
+    curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash - && \
+    sudo apt-get install -y nodejs npm;
+    # rm -rf /var/lib/apt/lists/*
+    # RUN case ${TARGETPLATFORM} in \
+    #      "linux/amd64")  NODE_ARCH=amd64   ;; \
+    #      "linux/arm")    NODE_ARCH=armhf  ;; \
+    #      "linux/arm/v7")    NODE_ARCH=armhf  ;; \
+    #      "linux/arm64")  NODE_ARCH=arm64  ;; \
+    # esac \ 
+    # && curl -L https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/nodejs_16.14.2-deb-1nodesource1_$NODE_ARCH.deb -o ./nodejs.deb && \
+    # apt update && \
+    # apt install -y ./nodejs.deb && \
+    # apt clean && \
+    # rm -rf /var/lib/apt/lists/* &&\
+    # rm nodejs.deb;
 
 
 # Build frontend
