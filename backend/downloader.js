@@ -4,7 +4,7 @@ const path = require('path');
 const NodeID3 = require('node-id3')
 const Mutex = require('async-mutex').Mutex;
 
-const youtubedl = require('youtube-dl');
+const youtubedl = require('youtube-dl-exec');
 
 const logger = require('./logger');
 const config_api = require('./config');
@@ -308,7 +308,11 @@ async function downloadQueuedFile(download_uid) {
         const download_checker = setInterval(() => checkDownloadPercent(download['uid']), 1000);
 
         // download file
-        youtubedl.exec(url, args, {maxBuffer: Infinity}, async function(err, output) {
+        const args_obj = utils.getArgsObj(args);
+        let process = await youtubedl.exec(url, args_obj);
+        const err = process.stderr.split('\n');
+        const output = process.stdout.split('\n');
+        {
             const file_objs = [];
             let end_time = Date.now();
             let difference = (end_time - start_time)/1000;
@@ -413,7 +417,7 @@ async function downloadQueuedFile(download_uid) {
                 await db_api.updateRecord('download_queue', {uid: download_uid}, {finished_step: true, finished: true, running: false, step_index: 3, percent_complete: 100, file_uids: file_uids, container: container});
                 resolve();
             }
-        });
+        };
     });
 }
 
@@ -555,52 +559,60 @@ exports.getVideoInfoByURL = async (url, args = [], download_uid = null) => {
         // remove bad args
         const temp_args = utils.filterArgs(args, ['--no-simulate']);
         const new_args = [...temp_args];
-
+        
         const archiveArgIndex = new_args.indexOf('--download-archive');
         if (archiveArgIndex !== -1) {
             new_args.splice(archiveArgIndex, 2);
         }
 
         new_args.push('--dump-json');
-
-        youtubedl.exec(url, new_args, {maxBuffer: Infinity}, async (err, output) => {
-            if (output) {
-                let outputs = [];
-                try {
-                    for (let i = 0; i < output.length; i++) {
-                        let output_json = null;
-                        try {
-                            output_json = JSON.parse(output[i]);
-                        } catch(e) {
-                            output_json = null;
-                        }
     
-                        if (!output_json) {
-                            continue;
-                        }
+        let args_obj = utils.getArgsObj(new_args);
+        args_obj['restrictFilenames'] = true;
+        args_obj['addHeader'] = [
+                'referer:youtube.com',
+                'user-agent:googlebot'
+            ];
+        youtubedl.exec(url, args_obj).then(async (process_data) => {
+            const output = process_data.stdout;
+            const err = process_data.stderr;
+            let outputs = [];
+            console.log(process_data);
+            try {
+                if (err) throw new Error(err);
+                const lines = output.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                    let output_json = null;
+                    try {
+                        output_json = JSON.parse(lines[i]);
+                    } catch(e) {
+                        output_json = null;
+                    }
 
-                        outputs.push(output_json);
+                    if (!output_json) {
+                        continue;
                     }
-                    resolve(outputs.length === 1 ? outputs[0] : outputs);
-                } catch(e) {
-                    const error = `Error while retrieving info on video with URL ${url} with the following message: output JSON could not be parsed. Output JSON: ${output}`;
-                    logger.error(error);
-                    if (download_uid) {
-                        const download = await db_api.getRecord('download_queue', {uid: download_uid});
-                        await handleDownloadError(download, error, 'parse_failed');
-                    }
-                    resolve(null);
+
+                    outputs.push(output_json);
                 }
-            } else {
-                let error_message = `Error while retrieving info on video with URL ${url} with the following message: ${err}`;
-                if (err.stderr) error_message += `\n\n${err.stderr}`;
-                logger.error(error_message);
+                resolve(outputs.length === 1 ? outputs[0] : outputs);
+            } catch(e) {
+                const error = `Exception while retrieving info on video with URL ${url} with the following message: output JSON could not be parsed. Output JSON: ${output}`;
+                logger.error(error);
                 if (download_uid) {
                     const download = await db_api.getRecord('download_queue', {uid: download_uid});
-                    await handleDownloadError(download, error_message, 'info_retrieve_failed');
+                    await handleDownloadError(download, error, 'parse_failed');
                 }
                 resolve(null);
             }
+        }, async (err) => {
+            const error = `Error while retrieving info on video with URL ${url} with the following message: output JSON could not be parsed. Output JSON: ${err}`;
+            logger.error(error);
+            if (download_uid) {
+                const download = await db_api.getRecord('download_queue', {uid: download_uid});
+                await handleDownloadError(download, error, 'parse_failed');
+            }
+            resolve(null);
         });
     });
 }

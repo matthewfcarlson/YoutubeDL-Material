@@ -164,12 +164,39 @@ exports.getDownloadedThumbnail = (file_path) => {
         return null;
 }
 
+exports.getArgsObj = (new_args) => {
+    let args_obj = {};
+    let current_key = "";
+    for (let i = 0; i < new_args.length; i++) {
+        let item = new_args[i];
+        if (item[0] == '-') {
+            // remove any number of - from the front of the string
+            item = item.replace(/^-+/, '');
+            current_key = (item.length == 1)? item : (item.trim().split('-').map((e,i)=> i == 0 ? e : e.charAt(0).toUpperCase() + e.slice(1))).join('');
+            args_obj[current_key] = true;
+        }
+        else {
+            args_obj[current_key] = item;
+        }
+    }
+    return args_obj;
+};
+
 exports.getExpectedFileSize = (input_info_jsons) => {
     // treat single videos as arrays to have the file sizes checked/added to. makes the code cleaner
     const info_jsons = Array.isArray(input_info_jsons) ? input_info_jsons : [input_info_jsons];
+    if (info_jsons.length >= 10000) {
+        logger.warn(`getExpectedFileSize called with ${info_jsons.length} files. This may take a while...`);
+        console.log(input_info_jsons);
+        return 0;
+    }
 
     let expected_filesize = 0;
-    info_jsons.forEach(info_json => {
+    info_jsons.forEach((info_json, index) => {
+        if (info_json['format_id'] == undefined) {
+            logger.warn(`No format_id found for ${info_json['webpage_url']} ${index}. Skipping...`);
+            return;
+        }
         const formats = info_json['format_id'].split('+');
         let individual_expected_filesize = 0;
         formats.forEach(format_id => {
