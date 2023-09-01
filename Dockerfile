@@ -26,7 +26,7 @@ RUN apt update && \
     apt install -y --no-install-recommends curl ca-certificates tzdata libicu70 apt-transport-https && \
     apt clean
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
-    apt install -y nodejs npm
+    apt install -y nodejs
     # rm -rf /var/lib/apt/lists/*
     # RUN case ${TARGETPLATFORM} in \
     #      "linux/amd64")  NODE_ARCH=amd64   ;; \
