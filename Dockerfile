@@ -21,12 +21,12 @@ ENV PM2_HOME=/app/pm2
 ENV ALLOW_CONFIG_MUTATIONS=true
 # Directy fetch specific version
 ## https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/nodejs_16.14.2-deb-1nodesource1_amd64.deb
-RUN groupadd -g $GID $USER && useradd --system -m -g $USER --uid $UID $USER && \
-    apt update && \
+RUN groupadd -g $GID $USER && useradd --system -m -g $USER --uid $UID $USER
+RUN apt update && \
     apt install -y --no-install-recommends curl ca-certificates tzdata libicu70 apt-transport-https && \
-    apt clean && \
-    curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash - && \
-    sudo apt-get install -y nodejs npm;
+    apt clean
+RUN curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash - && \
+    sudo apt-get install -y nodejs npm
     # rm -rf /var/lib/apt/lists/*
     # RUN case ${TARGETPLATFORM} in \
     #      "linux/amd64")  NODE_ARCH=amd64   ;; \
